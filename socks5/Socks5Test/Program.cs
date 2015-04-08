@@ -13,30 +13,30 @@ namespace Socks5Test
     {
         static void Main(string[] args)
         {
-            Socks5Server x = new Socks5Server(IPAddress.Any, 1084);
+            Socks5Server x = new Socks5Server(IPAddress.Any, 10084);
             x.Start();
             PluginLoader.ChangePluginStatus(false, typeof(socks5.ExamplePlugins.DataHandlerExample));
             //enable plugin.
-            /*foreach (object p in PluginLoader.GetPlugins)
+            foreach (object pl in PluginLoader.GetPlugins)
             {
-                if (p.GetType() == typeof(LoginHandlerExample))
-                {
-                    //enable it.
-                    PluginLoader.ChangePluginStatus(true, p.GetType());
-                    Console.WriteLine("Enabled {0}.", p.GetType().ToString());
-                }
-            }*/
+                //if (pl.GetType() == typeof(LoginHandlerExample))
+                //{
+                //    //enable it.
+                //    PluginLoader.ChangePluginStatus(true, pl.GetType());
+                //    Console.WriteLine("Enabled {0}.", pl.GetType().ToString());
+                //}
+            }
             //Start showing network stats.
-            Socks5Client p = new Socks5Client("localhost", 1084, "your.ip.goes.here or domain", 9000, "yolo", "swag");
+            Socks5Client p = new Socks5Client("localhost", 10084, "127.0.0.1", 10084, "yolo", "swag");
             p.OnConnected += p_OnConnected;
             p.ConnectAsync();
-            while (true)
-            {
-                /*Console.Clear();
-                Console.Write("Total Clients: \t{0}\nTotal Recvd: \t{1:0.00##}MB\nTotal Sent: \t{2:0.00##}MB\n", x.Stats.TotalClients, ((x.Stats.NetworkReceived / 1024f) / 1024f), ((x.Stats.NetworkSent / 1024f) / 1024f));
-                Console.Write("Receiving/sec: \t{0}\nSending/sec: \t{1}", x.Stats.BytesReceivedPerSec, x.Stats.BytesSentPerSec);*/
-                Thread.Sleep(1000);
-            }
+            //while (true)
+            //{
+            // //   Console.Clear();
+            //    Console.Write("Total Clients: \t{0}\nTotal Recvd: \t{1:0.00##}MB\nTotal Sent: \t{2:0.00##}MB\n", x.Stats.TotalClients, ((x.Stats.NetworkReceived / 1024f) / 1024f), ((x.Stats.NetworkSent / 1024f) / 1024f));
+            //    Console.Write("Receiving/sec: \t{0}\nSending/sec: \t{1}", x.Stats.BytesReceivedPerSec, x.Stats.BytesSentPerSec);
+            //    Thread.Sleep(1000);
+            //}
         }
         static byte[] m;
         static void p_OnConnected(object sender, Socks5ClientArgs e)

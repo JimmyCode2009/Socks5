@@ -21,10 +21,10 @@ namespace socks5.TCP
 
         public TcpServer(IPAddress ip, int port)
         {
-            p = new TcpListener(ip, port);
+            p =  TcpListener.Create(port);
         }
 
-        private ManualResetEvent Task = new ManualResetEvent(false);
+        private ManualResetEventSlim Task = new ManualResetEventSlim(false);
 
         private void AcceptConnections()
         {
@@ -34,7 +34,7 @@ namespace socks5.TCP
                 {
                     Task.Reset();
                     p.BeginAcceptSocket(new AsyncCallback(AcceptClient), p);
-                    Task.WaitOne();
+                    Task.Wait();
                 }
                 catch { //error, most likely server shutdown.
                 }
@@ -45,7 +45,7 @@ namespace socks5.TCP
         {
             try
             {
-                TcpListener px = (TcpListener)res.AsyncState;
+                TcpListener px = (TcpListener) res.AsyncState;
                 Socket x = px.EndAcceptSocket(res);
                 Task.Set();
                 Client f = new Client(x, PacketSize);
@@ -54,10 +54,17 @@ namespace socks5.TCP
                 f.onDataSent += onDataSent;
                 onClientConnected(this, new ClientEventArgs(f));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.Message);
                 //server stopped or client errored?
+            }
+            finally
+            {
+                if (!Task.IsSet)
+                {
+                    Task.Set();
+                }
             }
          }
 

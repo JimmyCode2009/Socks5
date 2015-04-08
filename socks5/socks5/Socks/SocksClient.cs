@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using socks5.Plugin;
 using System.Net;
@@ -26,14 +27,20 @@ namespace socks5.Socks
             if (authtypes.Count <= 0)
             {
                 Client.Send(new byte[] { 0x00, 0xFF });
+                Console.WriteLine("Client Auth  Send Complete.@ "+Client.Sock.LocalEndPoint);
                 Client.Disconnect();
                 return;
             }
             this.Authenticated = 0;
             SocksEncryption w = null;
             List<object> lhandlers = PluginLoader.LoadPlugin(typeof(LoginHandler));
+            bool loginenabled = false;
+            if (lhandlers.Count > 0)
+            {
+                loginenabled = lhandlers.Cast<LoginHandler>().Any(l => l.Enabled);
+            }
             //check out different auth types, none will have no authentication, the rest do.
-            if (lhandlers.Count > 0 && authtypes.Contains(AuthTypes.SocksBoth) || authtypes.Contains(AuthTypes.SocksEncrypt) || authtypes.Contains(AuthTypes.SocksCompress) || authtypes.Contains(AuthTypes.Login))
+            if (loginenabled && (authtypes.Contains(AuthTypes.SocksBoth) || authtypes.Contains(AuthTypes.SocksEncrypt) || authtypes.Contains(AuthTypes.SocksCompress) || authtypes.Contains(AuthTypes.Login)))
             {
                 //this is the preferred method.
                 w = Socks5.RequestSpecialMode(authtypes, Client);
@@ -52,6 +59,7 @@ namespace socks5.Socks
                         Client.Send(new byte[] { (byte)HeaderTypes.Socks5, (byte)status });
                         if (status == LoginStatus.Denied)
                         {
+                            Console.WriteLine("> Login Denied!");
                             Client.Disconnect();
                             return;
                         }
@@ -102,6 +110,7 @@ namespace socks5.Socks
                         {
                             req.Error = SocksError.Failure;
                             Client.Send(req.GetData(true));
+
                             Client.Disconnect();
                             return;
                         }

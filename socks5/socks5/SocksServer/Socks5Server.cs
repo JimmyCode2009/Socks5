@@ -22,6 +22,11 @@ namespace socks5
 
         private bool started;
 
+        public event EventHandler OnClientConnected;
+        public event EventHandler OnClientDisconnected;
+
+        public event EventHandler OnDebugEvent;
+
         public Socks5Server(IPAddress ip, int port)
         {
             Timeout = 5000;
@@ -36,7 +41,7 @@ namespace socks5
         {
             if (started) return;
             Plugin.PluginLoader.LoadPluginsFromDisk = LoadPluginsFromDisk;
-            PluginLoader.LoadPlugins(); 
+            PluginLoader.LoadPlugins();
             _server.PacketSize = PacketSize;
             _server.Start();
             started = true;
@@ -68,10 +73,11 @@ namespace socks5
 
         void _server_onClientConnected(object sender, ClientEventArgs e)
         {
-            //Console.WriteLine("Client connected.");
+            Console.WriteLine("Client @"+e.Client.Sock.LocalEndPoint);
             //call plugins related to ClientConnectedHandler.
             foreach (ClientConnectedHandler cch in PluginLoader.LoadPlugin(typeof(ClientConnectedHandler)))
-                if (cch.Enabled)               
+                if (cch.Enabled)
+                {
                     try
                     {
                         if (!cch.OnConnect(e.Client, (IPEndPoint)e.Client.Sock.RemoteEndPoint))
@@ -83,6 +89,7 @@ namespace socks5
                     catch
                     {
                     }
+                }
             SocksClient client = new SocksClient(e.Client);
             e.Client.onDataReceived += Client_onDataReceived;
             e.Client.onDataSent += Client_onDataSent;

@@ -64,6 +64,10 @@ namespace socks5.Encryption
 
         public byte[] ProcessInputData(byte[] buffer, int offset, int count)
         {
+            if (count < 0)
+            {
+                return null;
+            }
             //realign buffer.
             try
             {

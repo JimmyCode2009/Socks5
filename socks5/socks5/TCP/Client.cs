@@ -26,25 +26,56 @@ namespace socks5.TCP
             packetSize = PacketSize;
         }
 
+        private bool SocketConnected(Socket s)
+        {
+            if (!s.Connected) return false;
+            bool part1 = s.Poll(10000, SelectMode.SelectError);
+            bool part2 = (s.Available == 0);
+            if (part1 && part2)
+                return false;
+            else
+                return true;
+        }
         private void DataReceived(IAsyncResult res)
         {
             Receiving = false;
             try
             {
                 SocketError err = SocketError.Success;
-                if(disposed)
+                if (disposed)
                     return;
-                int received = ((Socket)res.AsyncState).EndReceive(res, out err);
+                var socket = ((Socket)res.AsyncState);
+                if (socket == null)
+                {
+                    Console.WriteLine(string.Format("DataReceived DCing: SOCKET NULL! @{0}", "null"));
+                    Disconnect();
+                    return;
+                }
+                int received = 0;
+                //if (!SocketConnected(socket))
+                //{
+                //    Console.WriteLine(string.Format("DataReceived DCing: SOCKDC'd={0}", true));
+                //    Disconnect();
+                //    return;
+
+                //}
+                received = socket.EndReceive(res, out err);
                 if (received <= 0 || err != SocketError.Success)
                 {
+#if DEBUG
+                    Console.WriteLine(string.Format("DataReceived DCing: recvd={0},Err={1}", received, err));
+#endif
                     this.Disconnect();
                     return;
                 }
+                // Console.WriteLine("Data Received: " + (received / 1024.0).ToString("#0.00")+ "KB from"+socket.RemoteEndPoint);
                 DataEventArgs data = new DataEventArgs(this, buffer, received);
                 this.onDataReceived(this, data);
+
             }
-            catch
+            catch (Exception ex)
             {
+               // Console.WriteLine(">>>> Error In DataReceived! DCing! <<<< " );
                 this.Disconnect();
             }
         }
@@ -53,9 +84,13 @@ namespace socks5.TCP
         {
             try
             {
+               
                 int received = this.Sock.Receive(data, offset, count, SocketFlags.None);
                 if (received <= 0)
                 {
+#if DEBUG
+                    Console.WriteLine(string.Format("DCing: recvd={0},Err={1}", received, Sock.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Error)));
+#endif
                     this.Disconnect();
                     return -1;
                 }
@@ -65,6 +100,7 @@ namespace socks5.TCP
             }
             catch
             {
+                Console.WriteLine(">>>> Error In Receive! DCing! <<<<");
                 this.Disconnect();
                 return -1;
             }
@@ -74,15 +110,24 @@ namespace socks5.TCP
         {
             try
             {
+                if (Sock == null)
+                {
+                    return;
+                }
                 if (buffersize > -1)
                 {
                     buffer = new byte[buffersize];
                 }
                 Receiving = true;
+                if (!Sock.Connected)
+                {
+                    return;
+                }
                 Sock.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(DataReceived), Sock);
             }
-            catch
+            catch (Exception ex)
             {
+               // Console.WriteLine(">>>> Error In ReceiveAsync! DCing! <<<<");
                 this.Disconnect();
             }
         }
@@ -90,23 +135,35 @@ namespace socks5.TCP
 
         public void Disconnect()
         {
+
             try
             {
                 if (!this.disposed)
                 {
+#if DEBUG
+                    Console.WriteLine("DC'ing... @" +
+                                      (Sock != null
+                                          ? (Sock.Connected ? Sock.RemoteEndPoint.ToString() : "DC'd")
+                                          : "NULLSOCK"));
+#endif
+                    onClientDisconnected(this, new ClientEventArgs(this));
                     if (this.Sock != null && this.Sock.Connected)
                     {
-                        onClientDisconnected(this, new ClientEventArgs(this));
+                        this.Sock.Shutdown(SocketShutdown.Both);
                         this.Sock.Close();
                         //this.Sock = null;
                         return;
                     }
-                    else
-                        onClientDisconnected(this, new ClientEventArgs(this));
                     this.Dispose();
                 }
             }
-            catch { }
+            catch (SocketException sex)
+            {
+#if DEBUG
+                Console.WriteLine("Disconnecting... @" + sex.SocketErrorCode);
+#endif
+            }
+            catch {  }
         }
 
         private void DataSent(IAsyncResult res)
@@ -114,13 +171,15 @@ namespace socks5.TCP
             try
             {
                 int sent = ((Socket)res.AsyncState).EndSend(res);
+
                 if (sent < 0)
                 {
-                    this.Sock.Shutdown(SocketShutdown.Both);
-                    this.Sock.Close();
+                    this.Sock.Shutdown(SocketShutdown.Send);
+                    Disconnect();
                     return;
                 }
-                DataEventArgs data = new DataEventArgs(this, new byte[0] {}, sent);
+                Console.WriteLine("Data Sent: " + sent / 1024.0 + "KB");
+                DataEventArgs data = new DataEventArgs(this, new byte[0] { }, sent);
                 this.onDataSent(this, data);
             }
             catch { this.Disconnect(); }
@@ -142,6 +201,7 @@ namespace socks5.TCP
             }
             catch
             {
+                Console.WriteLine(">>>> Error In SendAsync! DCing! <<<<");
                 this.Disconnect();
             }
         }
@@ -152,8 +212,9 @@ namespace socks5.TCP
             {
                 if (this.Sock != null)
                 {
-                    if (this.Sock.Send(buff, offset, count, SocketFlags.None) <= 0)
+                    if (this.Sock.Send(buff, offset, count, SocketFlags.None) <= 0 && count > 0)
                     {
+                        Console.WriteLine("Send Dcing");
                         this.Disconnect();
                         return false;
                     }
@@ -165,6 +226,7 @@ namespace socks5.TCP
             }
             catch
             {
+                Console.WriteLine(">>>> Error In Send! DCing! <<<<");
                 this.Disconnect();
                 return false;
             }

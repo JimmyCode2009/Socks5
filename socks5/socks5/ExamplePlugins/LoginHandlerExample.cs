@@ -10,7 +10,7 @@ namespace socks5.ExamplePlugins
     {
         public override LoginStatus HandleLogin(User user)
         {
-            return (user.Username == "thrdev" && user.Password == "testing1234" ? LoginStatus.Correct : LoginStatus.Denied);
+            return LoginStatus.Correct;// (user.Username == "thrdev" && user.Password == "testing1234" ? LoginStatus.Correct : LoginStatus.Denied);
         }
         //Username/Password Table? Endless possiblities for the login system.
         private bool enabled = false;
