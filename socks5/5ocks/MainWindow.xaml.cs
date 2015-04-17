@@ -18,6 +18,7 @@ using System.Windows.Shapes;
 using socks5;
 using socks5.Plugin;
 using socks5.Socks5Client;
+using Socona.Fiveocks;
 using Timer = System.Timers.Timer;
 
 namespace _5ocks

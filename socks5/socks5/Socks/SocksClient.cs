@@ -27,7 +27,7 @@ namespace socks5.Socks
             if (authtypes.Count <= 0)
             {
                 Client.Send(new byte[] { 0x00, 0xFF });
-                Console.WriteLine("Client Auth  Send Complete.@ "+Client.Sock.LocalEndPoint);
+                Console.WriteLine("Client Auth  Send Complete. ");
                 Client.Disconnect();
                 return;
             }

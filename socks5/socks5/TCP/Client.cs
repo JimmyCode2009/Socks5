@@ -212,7 +212,7 @@ namespace socks5.TCP
             {
                 if (this.Sock != null)
                 {
-                    if (this.Sock.Send(buff, offset, count, SocketFlags.None) <= 0 && count > 0)
+                    if (this.Sock.Send(buff, offset, count, SocketFlags.None) <= 0)
                     {
                         Console.WriteLine("Send Dcing");
                         this.Disconnect();

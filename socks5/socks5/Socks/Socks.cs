@@ -1,4 +1,5 @@
-﻿using socks5.Encryption;
+﻿using System.Net.Sockets;
+using socks5.Encryption;
 using socks5.TCP;
 using System;
 using System.Collections.Generic;
@@ -209,13 +210,16 @@ namespace socks5.Socks
                     try
                     {
                         foreach (IPAddress p in Dns.GetHostAddresses(Address))
-                            if (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            if (p.AddressFamily == AddressFamily.InterNetwork || p.AddressFamily == AddressFamily.InterNetworkV6)
                                 return p;
                         return null;
                     }
                     catch
                     {
                         Error = SocksError.HostUnreachable;
+#if DEBUG
+                        Console.WriteLine("Cannot Resolve Address: " + Address);
+#endif
                         return null;
                     }
                 }
@@ -229,11 +233,11 @@ namespace socks5.Socks
         {
             byte[] data;
             var port = 0;
-            if(NetworkToHostOrder)
+            if (NetworkToHostOrder)
                 port = IPAddress.NetworkToHostOrder(Port);
             else
                 port = IPAddress.HostToNetworkOrder(Convert.ToInt16(Port));
-            
+
             if (Type == AddressType.IP)
             {
                 data = new byte[10];
@@ -250,7 +254,7 @@ namespace socks5.Socks
                 Buffer.BlockCopy(BitConverter.GetBytes(port), 0, data, data.Length - 2, 2);
             }
             else return null;
-            data[0] = 0x05;                
+            data[0] = 0x05;
             data[1] = (byte)Error;
             data[2] = 0x00;
             data[3] = (byte)Type;
